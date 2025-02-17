@@ -1,4 +1,5 @@
-FROM registry.redhat.io/rhel9/rhel-bootc:9.4
+# FROM registry.redhat.io/rhel9/rhel-bootc:9.4
+FROM quay.coe.muc.redhat.com/proxy_registry_redhat_io/rhel9-eus/rhel-9.4-bootc
 
 ARG USHIFT_VER=4.17
 RUN dnf config-manager \
