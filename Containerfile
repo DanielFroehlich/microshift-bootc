@@ -24,7 +24,7 @@ RUN systemctl enable microshift-make-rshared.service && \
 # Registry with bootc image has cert from custom CA,
 # need to add that to for later update:
     curl https://certs.corp.redhat.com/certs/Current-IT-Root-CAs.pem -o /etc/pki/ca-trust/source/anchors/RedHat_Current-IT-Root-CAs.pem && \
-    update-ca-trust &&
+    update-ca-trust && \
 # Make the KUBECONFIG from MicroShift directly available for the root user
     mkdir -p /var/roothome && \
     echo -e 'export KUBECONFIG=/var/lib/microshift/resources/kubeadmin/kubeconfig' >> /var/roothome/.profile
