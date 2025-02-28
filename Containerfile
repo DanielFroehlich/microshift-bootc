@@ -24,16 +24,17 @@ RUN systemctl enable microshift-make-rshared.service && \
 # Registry with bootc image has cert from custom CA,
 # need to add that to for later update:
     curl https://certs.corp.redhat.com/certs/Current-IT-Root-CAs.pem -o /etc/pki/ca-trust/source/anchors/RedHat_Current-IT-Root-CAs.pem && \
-    update-ca-trust && \
+    update-ca-trust &&
 # Make the KUBECONFIG from MicroShift directly available for the root user
-    echo -e 'export KUBECONFIG=/var/lib/microshift/resources/kubeadmin/kubeconfig' >> /root/.profile
-
-# Registry with bootc image requires auth, need to add token for that:
-COPY /workspace/dockerconfig/.dockerconfigjson /etc/ostree/auth.json
+    mkdir -p /var/roothome && \
+    echo -e 'export KUBECONFIG=/var/lib/microshift/resources/kubeadmin/kubeconfig' >> /var/roothome/.profile
 
 # Add helpful demo commands to bash history
 COPY templates/bash_history.txt /root/.bash_history
 
-
-# Demo an update:
-# RUN date >>/usr/DanielWasHere.txt
+# Add FlightCTL / Edge Manager agent:
+RUN dnf -y copr enable @redhat-et/flightctl centos-stream-9-x86_64 && \
+    dnf -y install flightctl-agent; \
+    dnf -y clean all; \
+    systemctl enable flightctl-agent.service
+ADD secret-agentconfig.yaml /etc/flightctl/config.yaml

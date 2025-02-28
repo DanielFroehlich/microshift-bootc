@@ -47,29 +47,13 @@ Installed size: 62 M
 Is this ok [y/N]:
 
 
-sudo podman push localhost/microshift-4.17-bootc "quay.coe.muc.redhat.com/shared/microshift/microshift-4.17-bootc"
+sudo podman push --authfile "${PULL_SECRET}" localhost/microshift-4.17-bootc "quay.coe.muc.redhat.com/shared/microshift/microshift-4.17-bootc"
 
 
 NEW: 1.5 Run the image using podman
 Small intro describing the intention/purpose of when/why one would run the image using podman
 NEW: 1.5.1 Configure networking (Content from old 1.4)
 NEW:1.5.2 Running the container (Content from old 1.5)
-
-
-
-Build the iso:
-
-sudo podman run \
-    --rm \
-    -it \
-    --privileged \
-    --pull=newer \
-    --security-opt label=type:unconfined_t \
-    -v /var/lib/containers/storage:/var/lib/containers/storage \
-    -v $(pwd)/output:/output \
-    registry.redhat.io/rhel9/bootc-image-builder:latest \
-    --type iso \
-  quay.coe.muc.redhat.com/shared/microshift/microshift-4.17-bootc:latest
 
 
 **** Grub.cfg:
@@ -86,3 +70,47 @@ no such file or directory: /run/install/repo/osbuild-base.ks
 # make sure to be able to pull images from an insecure registry
 
 scp * builder@ushift-imgbld.stormshift.coe.muc.redhat.com:/home/builder/ushift-bootc/
+
+
+# build ISO image:
+Docs:
+
+https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/using_image_mode_for_rhel_to_build_deploy_and_manage_operating_systems/creating-bootc-compatible-base-disk-images-with-bootc-image-builder_using-image-mode-for-rhel-to-build-deploy-and-manage-operating-systems#creating-iso-images-by-using-bootc-image-builder_creating-bootc-compatible-base-disk-images-with-bootc-image-builder
+```
+sudo podman run \
+    --authfile "${PULL_SECRET}" \
+    --rm \
+    -it \
+    --privileged \
+    --pull=newer \
+    --security-opt label=type:unconfined_t \
+    -v /var/lib/containers/storage:/var/lib/containers/storage \
+    -v $(pwd)/bootc-image-builder-config.toml:/config.toml \
+    -v $(pwd)/output:/output \
+    registry.redhat.io/rhel9/bootc-image-builder:9.4 \
+    --type iso \
+    --tls-verify=false \
+    --config /config.toml \
+  quay.coe.muc.redhat.com/shared/microshift/microshift-4.17-bootc:install
+```
+--> did this on imgbld2, as imgbld1 did not work, probably due to conflicts with ostree-compose, or other previously long term created configurations
+
+# Serve ISO on http server
+Instructions:
+https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/interactively_installing_rhel_over_the_network/preparing-to-install-from-the-network-using-http_rhel-installer#configuring-the-http-server-for-http-boot_preparing-to-install-from-the-network-using-http
+
+
+
+```
+ssh builder@ushift-imgbld2.stormshift.coe.muc.redhat.com
+$ sudo su -
+# mount -o loop,ro -t iso9660 /home/builder/ushift-bootc/output/bootiso/install.iso /var/www/html/ushift-bootc-install/iso/
+
+cp -r /var/www/html/ushift-bootc-install/iso/images /var/www/html/ushift-bootc-install/
+chmod 644 /var/www/html/ushift-bootc-install/EFI/BOOT/grub.cfg
+vi /var/www/html/ushift-bootc-install/EFI/BOOT/grub.cfg
+
+```
+
+chmod -cR u=rwX,g=rX,o=rX /var/www/html
+restorecon -FvvR /var/www/html
